@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>User - Kandidat</title>
+</head>
+<body>
+    <h1>Daftar Kandidat</h1>
+    <a href="/auth/logout">Logout</a>
+    <ul>
+        {% for candidate in candidates %}
+        <li>{{ candidate }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
