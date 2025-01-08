@@ -3,27 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Voter System Login</title>
     <link href="{{url_for('static',filename='css/output.css')}}" rel="stylesheet">
-
 </head>
-<body class="bg-gray-100 h-screen flex items-center justify-center">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
-        <h2 class="text-2xl font-bold text-center text-gray-800 mb-4">Login</h2>
-        <form method="post" class="space-y-4">
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <!-- Login Form -->
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md mb-4">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Voter System Login</h2>
+        <form method="post" class="space-y-6">
             <div>
-                <label for="username" class="block text-sm font-medium text-gray-700">Username / ID</label>
-                <input type="text" id="username" name="username" required 
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                <label for="username" class="block text-sm font-medium text-gray-700">Voter ID</label>
+                <input type="text" id="id" name="id" required 
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
             </div>
             <div>
                 <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
                 <input type="password" id="password" name="password" required 
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
             </div>
             <button type="submit" 
-                    class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition">Login</button>
+                    class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition duration-200 font-medium">
+                Login
+            </button>
         </form>
     </div>
+
+    <!-- Register Button -->
+    <button onclick="openPopup()" 
+            class="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition duration-200 font-medium">
+        Register Here
+    </button>
+
+    <!-- Overlay -->
+    <div id="overlay" 
+         class="fixed inset-0 bg-black bg-opacity-50 hidden transition-opacity duration-200" 
+         onclick="closePopup()">
+    </div>
+
+    <!-- Registration Popup -->
+    <div id="popup" 
+         class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white p-8 rounded-lg shadow-xl hidden">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">Voter Registration</h2>
+        
+        <div class="space-y-6">
+            <form id="registerForm">
+            <div>
+                <label for="registerId" class="block text-sm font-medium text-gray-700">Voter ID</label>
+                <input id="regisVoterId" type="text" 
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
+                       required>
+                <p class="mt-1 text-sm text-gray-500">Enter your assigned Voter ID</p>
+            </div>
+            
+            <div>
+                <label for="registerPassword" class="block text-sm font-medium text-gray-700">Create Password</label>
+                <input id="regisPassword" type="password" 
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
+                       required>
+            </div>
+            
+            <div>
+                <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                <input id="confirmPassword" type="password" 
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
+                       required>
+            </div>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+            <button onclick="closePopup()" 
+                    class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition duration-200">
+                Cancel
+            </button>
+            <button type="submit" 
+                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200">
+                Register
+            </button>
+        </form>
+        </div>
+    </div>
+
+    <script>
+        // Show popup with animation
+        function openPopup() {
+            const popup = document.getElementById('popup');
+            const overlay = document.getElementById('overlay');
+            
+            overlay.classList.remove('hidden');
+            popup.classList.remove('hidden');
+            
+            // Reset form
+            document.getElementById('regisVoterId').value = '';
+            document.getElementById('regisPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        }
+
+        // Close popup with animation
+        function closePopup() {
+            const popup = document.getElementById('popup');
+            const overlay = document.getElementById('overlay');
+            
+            popup.classList.add('hidden');
+            overlay.classList.add('hidden');
+        }
+
+        // Handle registration
+        document.getElementById("registerForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            
+            const voterId = document.getElementById("regisVoterId").value;
+            const password = document.getElementById("regisPassword").value;
+
+            try {
+                // Cek apakah voterId ada di server
+                const checkResponse = await fetch(`/api/check_user/${voterId}`);
+                const checkData = await checkResponse.json();
+
+                if (checkResponse.ok && checkData.exists) {
+                    // Jika voterId ditemukan, lanjutkan dengan registrasi
+                    const registerResponse = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            voterId: voterId,
+                            Password: password
+                        })
+                    });
+
+                    const registerData = await registerResponse.json();
+
+                    if (registerResponse.ok && registerData.success) {
+                        alert("Registration successful! You can now login.");
+                        closePopup(); // Menutup popup setelah berhasil
+                    } else {
+                        alert(registerData.message || "Registration failed. Please try again.");
+                    }
+                } else {
+                    alert("Voter ID not found. Please check your ID and try again.");
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert(error.message || "An error occurred during registration.");
+            }
+        });
+    </script>
 </body>
 </html>

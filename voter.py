@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request, session
 from werkzeug.utils import secure_filename
 from voter_data import VotersData
 from gen_key import KeyManager
-import uuid
+
 
 voters_data = VotersData()
 key_manager = KeyManager()
