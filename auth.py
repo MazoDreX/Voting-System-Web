@@ -16,7 +16,7 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-       
+
         if username in users and users[username]["password"] == password:
             session["username"] = username
             session["role"] = users[username]["role"]  

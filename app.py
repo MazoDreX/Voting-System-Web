@@ -2,12 +2,14 @@ from flask import Flask,render_template, redirect, url_for, session, flash
 from auth import auth
 from candidate import candidate_bp
 from candidate_data import CandidateData
+from voter import voter_bp
 
 app = Flask(__name__)
 app.secret_key = "SECRET_KEY"
 
 app.register_blueprint(auth)
 app.register_blueprint(candidate_bp)
+app.register_blueprint(voter_bp)
 
 candidate_data = CandidateData()
 
