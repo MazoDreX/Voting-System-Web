@@ -194,7 +194,8 @@
                 // Add click handler for the entire card
                 const radio = card.querySelector('input[type="radio"]');
                 card.addEventListener('click', () => {
-                    selectedCandidateId = candidate.id;
+                    selectedCandidateId = candidate.name;
+                    console.log(selectedCandidateId)
                     radio.checked = true;
                     updateSelectionBanner(candidate.name);
                     
