@@ -62,8 +62,6 @@ def add_voters():
     }
 
     voters = voters_data.load_voters()
-    
-    voters = []
     voters.append(new_voter)
     voters_data.save_voters(voters)
 

@@ -6,6 +6,18 @@
     <title>Voter System Login</title>
     <link href="{{url_for('static',filename='css/output.css')}}" rel="stylesheet">
 </head>
+<!-- UNTUK FLASH MESSAGE -->
+{% with messages = get_flashed_messages(with_categories=True) %}
+  {% if messages %}
+    <div class="fixed top-5 right-5 space-y-4">
+      {% for category, message in messages %}
+        <div class="p-4 text-white rounded-lg shadow-lg {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
     <!-- Login Form -->
     <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md mb-4">
@@ -84,6 +96,13 @@
     </div>
 
     <script>
+         document.addEventListener("DOMContentLoaded", () => {
+            const flashMessages = document.querySelectorAll(".fixed .p-4");
+            setTimeout(() => {
+            flashMessages.forEach(msg => msg.remove());
+            }, 5000); // Hilang setelah 5 detik
+        });
+
         // Show popup with animation
         function openPopup() {
             const popup = document.getElementById('popup');

@@ -46,6 +46,10 @@ def login():
 
             if voter:
                 # Periksa apakah password cocok
+                if "password" not in voter or voter["password"] is None:
+                    flash("Belum ada password! Silahkan registrasi terlebih dahulu.", "danger")
+                    return render_template("login.html")  # Arahkan ke halaman registrasi
+
                 if check_password_hash(voter["password"],password):
                     # Simpan id dan role dalam session
                     session["id"] = voter_id
@@ -61,7 +65,7 @@ def login():
                 else:
                     flash("Invalid password.", "danger")
             else:
-                flash("Voter ID not found.", "danger")
+                flash("Voter ID tidak ditemukan.", "danger")
     
     return render_template("login.html")
 

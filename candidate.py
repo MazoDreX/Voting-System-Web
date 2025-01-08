@@ -16,8 +16,6 @@ def allowed_file(filename):
 # Get all candidates (Admin only)
 @candidate_bp.route("/", methods=["GET"])
 def get_candidates():
-    if session.get("role") != "admin":
-        return jsonify({"error": "Unauthorized"}), 403
     candidates = candidate_data.load_candidates()
     return jsonify({"candidates": candidates})
 

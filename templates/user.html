@@ -1,15 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>User - Kandidat</title>
+    <title>Pemilihan Voting</title>
+    <link href="{{url_for('static',filename='css/output.css')}}" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
+<!-- UNTUK FLASH MESSAGE -->
+{% with messages = get_flashed_messages(with_categories=True) %}
+  {% if messages %}
+    <div class="fixed top-5 right-5 space-y-4">
+      {% for category, message in messages %}
+        <div class="p-4 text-white rounded-lg shadow-lg {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
 <body>
-    <h1>Daftar Kandidat</h1>
-    <a href="/logout">Logout</a>
-    <ul>
-        {% for candidate in candidates %}
-        <li>{{ candidate }}</li>
-        {% endfor %}
-    </ul>
+    <!-- Header -->
+    <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <h1 class="text-3xl font-bold text-gray-900">Voting Candidates</h1>
+            <a href="/logout">Logout</a>
+        </div>
+    </header>
+
+        <!-- Selection Info Banner -->
+        <div id="selectionBanner" class="hidden bg-blue-50 border-b border-blue-100">
+            <div class="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+                            <svg class="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </span>
+                        <p class="ml-3 text-sm font-medium text-blue-800">
+                            Your selection: <span id="selectedCandidateName" class="font-bold"></span>
+                        </p>
+                    </div>
+                    <div id="submitVoteBtn" class="hidden">
+                        <button type="submit" form="voteForm"
+                                class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                            Confirm Vote
+                            <svg class="ml-2 -mr-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <form id="voteForm" class="space-y-6" onsubmit="handleVoteSubmit(event)">
+                <!-- Candidate Grid -->
+                <div id="candidateGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Candidates will be inserted here -->
+                </div>
+            </form>
+        </main>
+    <script>
+        let candidates = [];
+        let selectedCandidateId = null;
+
+        document.addEventListener('DOMContentLoaded', loadCandidates);
+
+        async function handleVoteSubmit(e) {
+            e.preventDefault();
+            if (!selectedCandidateId) {
+                alert('Please select a candidate to vote');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to submit your vote? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/vote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        candidateId: selectedCandidateId
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Vote submitted successfully!');
+                    window.location.href = '/vote-confirmation';
+                } else {
+                    alert(data.error || 'Failed to submit vote');
+                }
+            } catch (error) {
+                console.error('Error submitting vote:', error);
+                alert('An error occurred while submitting your vote');
+            }
+        }
+
+        async function loadCandidates() {
+            try {
+                const response = await fetch('/api/candidates/');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    candidates = data.candidates;
+                    renderCandidates();
+                } else {
+                    showError(data.error || "Failed to load candidates");
+                }
+            } catch (error) {
+                console.error('Error loading candidates:', error);
+                showError("An error occurred while loading candidates");
+            }
+        }
+
+        function updateSelectionBanner(candidateName) {
+            const banner = document.getElementById('selectionBanner');
+            const nameSpan = document.getElementById('selectedCandidateName');
+            const submitBtn = document.getElementById('submitVoteBtn');
+            
+            if (candidateName) {
+                nameSpan.textContent = candidateName;
+                banner.classList.remove('hidden');
+                submitBtn.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+                submitBtn.classList.add('hidden');
+            }
+        }
+
+        function renderCandidates() {
+            const grid = document.getElementById('candidateGrid');
+            grid.innerHTML = '';
+            
+            candidates.forEach((candidate, index) => {
+                const photoUrl = candidate.photo 
+                    ? `/static/uploads/candidates/${candidate.photo}`
+                    : '/static/uploads/candidates/default.png';
+                
+                const card = document.createElement('div');
+                card.className = 'group relative bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg';
+                card.innerHTML = `
+                    <input type="radio" 
+                           id="candidate${index}" 
+                           name="vote" 
+                           value="${candidate.id}"
+                           class="peer hidden"
+                           ${selectedCandidateId === candidate.id ? 'checked' : ''}>
+                    <label for="candidate${index}" 
+                           class="block cursor-pointer transition-all duration-300 peer-checked:ring-4 peer-checked:ring-blue-500 rounded-xl">
+                        <div class="relative">
+                            <!-- Selection Overlay -->
+                            <div class="absolute inset-0 bg-blue-500 bg-opacity-0 peer-checked:bg-opacity-10 transition-all duration-300 z-10"></div>
+                            
+                            <!-- Selected Badge -->
+                            <div class="absolute top-4 right-4 z-20 transform scale-0 peer-checked:scale-100 transition-transform duration-300">
+                                <span class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+                                    Selected
+                                </span>
+                            </div>
+                            
+                            <img src="${photoUrl}" 
+                                 alt="${candidate.name}"
+                                 class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105">
+                        </div>
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+                                    Candidate ${index + 1}
+                                </span>
+                            </div>
+                            <h2 class="text-xl font-bold text-gray-900 mb-2">${candidate.name}</h2>
+                            <p class="text-gray-600 text-sm mb-4">${candidate.description || 'No description available'}</p>
+                            
+                            <!-- Selection Indicator -->
+                            <div class="mt-4 flex items-center space-x-2">
+                                
+                                <span class="text-sm text-gray-500">Click to select</span>
+                            </div>
+                        </div>
+                    </label>
+                `;
+                grid.appendChild(card);
+
+                // Add click handler for the entire card
+                const radio = card.querySelector('input[type="radio"]');
+                card.addEventListener('click', () => {
+                    selectedCandidateId = candidate.id;
+                    radio.checked = true;
+                    updateSelectionBanner(candidate.name);
+                    
+                    // Remove selection from other cards
+                    document.querySelectorAll('input[name="vote"]').forEach(input => {
+                        if (input !== radio) {
+                            input.checked = false;
+                        }
+                    });
+                });
+            });
+        }
+
+        function showError(message) {
+            const grid = document.getElementById('candidateGrid');
+            grid.innerHTML = `
+                <div class="col-span-full flex items-center justify-center p-8">
+                    <div class="text-center">
+                        <p class="text-red-600 text-lg mb-2">Error</p>
+                        <p class="text-gray-600">${message}</p>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
 </body>
 </html>
