@@ -43,7 +43,7 @@ def add_voters():
 
     # BUAT QR CODE
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
-    qr.add_data(key_manager.get_public_key_pem(voter_id))
+    qr.add_data(key_manager.get_private_key_pem(voter_id))
     qr.make(fit=True)
     
     qr_img_path = os.path.join(QR_CODE_FOLDER, f"{voter_id}.png")
@@ -57,7 +57,7 @@ def add_voters():
         "tanggalLahir": tanggal_lahir,
         "jenisKelamin": jenis_kelamin,
         "alamat": alamat,
-        "public_key": public_key_path,
+        "private_key": private_key_path,
         "qr_code": qr_img_path,
     }
 

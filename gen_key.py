@@ -90,6 +90,21 @@ class KeyManager:
             public_key_pem = pub_file.read()
 
         return public_key_pem.decode()
+    
+    def get_private_key_pem(self, voter_id):
+        """
+        Mengembalikan public key dalam format PEM (untuk dibagikan sebagai QR code).
+        :param voter_id: ID unik untuk voter.
+        :return: Public key dalam format string PEM.
+        """
+        private_key_path = os.path.join(self.key_dir, f"{voter_id}_private_key.pem")
+        if not os.path.exists(private_key_path):
+            raise FileNotFoundError(f"Private key untuk voter {voter_id} tidak ditemukan.")
+
+        with open(private_key_path, "rb") as pub_file:
+            private_key_pem = pub_file.read()
+
+        return private_key_pem.decode()
 
 # Contoh penggunaan
 if __name__ == "__main__":

@@ -5,6 +5,101 @@
     <link href="{{url_for('static',filename='css/output.css')}}" rel="stylesheet">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        async function loadVotingPage() {
+            const response = await fetch("/voting_status");
+            const { status } = await response.json();
+            const container = document.getElementById("voting-container");
+
+            if (status === "inactive") {
+                container.innerHTML = `
+                <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+                <!-- Main container -->
+                <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+                    <!-- Warning Icon -->
+                    <div class="mx-auto w-16 h-16 flex items-center justify-center mb-4">
+                        <svg class="w-full h-full text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                    </div>
+
+                    <!-- Message -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <h2 class="text-xl font-semibold text-blue-800 mb-2">Status Voting</h2>
+                        <p class="text-blue-700">Voting belum dimulai. Harap tunggu.</p>
+                    </div>
+
+                    <!-- Additional info -->
+                    <p class="text-sm text-gray-600">
+                        Silakan periksa kembali halaman ini secara berkala untuk mengetahui ketika voting sudah dimulai.
+                    </p>
+                </div>
+
+                <!-- Footer -->
+                <footer class="mt-8 text-center text-gray-500 text-sm">
+                    <p>© 2025 Sistem E-Voting</p>
+                </footer>
+            </div>       
+                `;
+            } else if (status === "active") {
+                container.innerHTML = `
+                    <div id="selectionBanner" class="hidden bg-blue-50 border-b border-blue-100">
+                    <div class="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <span class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+                                    <svg class="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                </span>
+                                <p class="ml-3 text-sm font-medium text-blue-800">
+                                    Your selection: <span id="selectedCandidateName" class="font-bold"></span>
+                                </p>
+                            </div>
+                            <div id="submitVoteBtn" class="hidden">
+                                <button type="submit" form="voteForm"
+                                        class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                                    Confirm Vote
+                                    <svg class="ml-2 -mr-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+                <!-- Main Content -->
+                <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                    <form id="voteForm" class="space-y-6" onsubmit="handleVoteSubmit(event)">
+                        <!-- Candidate Grid -->
+                        <div id="candidateGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Candidates will be inserted here -->
+                        </div>
+                    </form>
+                </main>
+                `;
+                document.getElementById("vote-form").addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    const choice = document.getElementById("choice").value;
+                    const response = await fetch("/vote", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ voter_id: "12345", choice }),
+                    });
+                    const result = await response.json();
+                    alert(result.message);
+                });
+            } else if (status === "completed") {
+                container.innerHTML = "<p>Voting telah selesai. Terima kasih telah berpartisipasi.</p>";
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", loadVotingPage);
+
+    </script>
 </head>
 <!-- UNTUK FLASH MESSAGE -->
 {% with messages = get_flashed_messages(with_categories=True) %}
@@ -23,49 +118,25 @@
     <header class="bg-white shadow">
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <h1 class="text-3xl font-bold text-gray-900">Voting Candidates</h1>
-            <a href="/logout">Logout</a>
+            <h1>Selamat datang, {{ id }}</h1>
+            <a class="" href="/logout">Logout</a>
         </div>
     </header>
 
         <!-- Selection Info Banner -->
-        <div id="selectionBanner" class="hidden bg-blue-50 border-b border-blue-100">
-            <div class="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-                            <svg class="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                        </span>
-                        <p class="ml-3 text-sm font-medium text-blue-800">
-                            Your selection: <span id="selectedCandidateName" class="font-bold"></span>
-                        </p>
-                    </div>
-                    <div id="submitVoteBtn" class="hidden">
-                        <button type="submit" form="voteForm"
-                                class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-600">
-                            Confirm Vote
-                            <svg class="ml-2 -mr-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
+        <div id="voting-container">
+        
         </div>
-    
-        <!-- Main Content -->
-        <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <form id="voteForm" class="space-y-6" onsubmit="handleVoteSubmit(event)">
-                <!-- Candidate Grid -->
-                <div id="candidateGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Candidates will be inserted here -->
-                </div>
-            </form>
-        </main>
     <script>
         let candidates = [];
         let selectedCandidateId = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const flashMessages = document.querySelectorAll(".fixed .p-4");
+            setTimeout(() => {
+            flashMessages.forEach(msg => msg.remove());
+            }, 5000); // Hilang setelah 5 detik
+        });
 
         document.addEventListener('DOMContentLoaded', loadCandidates);
 

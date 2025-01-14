@@ -10,6 +10,9 @@ auth = Blueprint('auth', __name__)
 users = {
     "admin": {"password": "admin123", "role": "admin"}
 }
+
+voting_status = {"status": "inactive"}
+
 voters_data = VotersData()
 @auth.route("/login", methods=["GET", "POST"])
 def login():
@@ -128,3 +131,49 @@ def register():
     voters_data.save_voters(voters)
 
     return jsonify({"success": True, "message": "Registration successful"}), 201
+
+@auth.route("/admin/start_voting", methods=["POST"])
+def start_voting():
+    """
+    Admin memulai voting.
+    """
+    if session.get("role") != "admin":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    voting_status["status"] = "active"
+    return jsonify({"message": "Voting telah dimulai."}), 200
+
+@auth.route("/admin/end_voting", methods=["POST"])
+def end_voting():
+    """
+    Admin menyelesaikan voting.
+    """
+    if session.get("role") != "admin":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    voting_status["status"] = "completed"
+    return jsonify({"message": "Voting telah selesai."}), 200
+
+@auth.route("/voting_status", methods=["GET"])
+def get_voting_status():
+    """
+    Cek status voting.
+    """
+    return jsonify(voting_status), 200
+
+@auth.route("/vote", methods=["POST"])
+def vote():
+    """
+    User memberikan suara.
+    """
+    if voting_status["status"] != "active":
+        return jsonify({"error": "Voting belum dimulai atau sudah selesai."}), 400
+
+    # Proses vote (contoh sederhana)
+    data = request.json
+    voter_id = data.get("voter_id")
+    choice = data.get("choice")
+
+    # Simpan suara di database (implementasi disesuaikan)
+    print(f"Voter ID: {voter_id} memilih {choice}")
+    return jsonify({"message": "Vote berhasil disimpan."}), 200
