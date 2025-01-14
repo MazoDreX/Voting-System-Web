@@ -1,10 +1,10 @@
 import os
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
 
 class KeyManager:
     """
-    Class untuk mengelola pembuatan, penyimpanan, dan pengambilan kunci public-private RSA.
+    Class untuk mengelola pembuatan, penyimpanan, dan pengambilan kunci public-private ECC.
     """
     def __init__(self, key_dir="database/keys"):
         self.key_dir = key_dir
@@ -13,19 +13,16 @@ class KeyManager:
 
     def generate_keys(self, voter_id):
         """
-        Membuat pasangan kunci RSA dan menyimpannya ke file.
+        Membuat pasangan kunci ECC dan menyimpannya ke file.
         :param voter_id: ID unik untuk voter (digunakan untuk menamai file kunci).
         """
         # Generate private key
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048
-        )
+        private_key = ec.generate_private_key(ec.SECP256R1())
 
         # Serialize private key
         private_key_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.NoEncryption(),
         )
 
@@ -48,7 +45,7 @@ class KeyManager:
         with open(public_key_path, "wb") as pub_file:
             pub_file.write(public_key_pem)
 
-        print(f"Kunci untuk voter {voter_id} telah dibuat dan disimpan.")
+        print(f"Kunci ECC untuk voter {voter_id} telah dibuat dan disimpan.")
         return private_key_path, public_key_path
 
     def load_keys(self, voter_id):
@@ -90,33 +87,19 @@ class KeyManager:
             public_key_pem = pub_file.read()
 
         return public_key_pem.decode()
-    
+
     def get_private_key_pem(self, voter_id):
         """
-        Mengembalikan public key dalam format PEM (untuk dibagikan sebagai QR code).
+        Mengembalikan private key dalam format PEM.
         :param voter_id: ID unik untuk voter.
-        :return: Public key dalam format string PEM.
+        :return: Private key dalam format string PEM.
         """
         private_key_path = os.path.join(self.key_dir, f"{voter_id}_private_key.pem")
         if not os.path.exists(private_key_path):
             raise FileNotFoundError(f"Private key untuk voter {voter_id} tidak ditemukan.")
 
-        with open(private_key_path, "rb") as pub_file:
-            private_key_pem = pub_file.read()
+        with open(private_key_path, "rb") as priv_file:
+            private_key_pem = priv_file.read()
 
         return private_key_pem.decode()
 
-# Contoh penggunaan
-if __name__ == "__main__":
-    key_manager = KeyManager()
-    voter_id = "voter123"
-
-    # Generate keys for the voter
-    private_key_path, public_key_path = key_manager.generate_keys(voter_id)
-    print(f"Private key path: {private_key_path}")
-    print(f"Public key path: {public_key_path}")
-
-    # Load keys and print public key in PEM format
-    private_key, public_key = key_manager.load_keys(voter_id)
-    print("Public Key (PEM):")
-    print(key_manager.get_public_key_pem(voter_id))
