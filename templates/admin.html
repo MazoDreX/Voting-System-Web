@@ -8,6 +8,133 @@
       href="{{url_for('static',filename='css/output.css')}}"
       rel="stylesheet"
     />
+    <script src="{{ url_for('static', filename='js/chart.umd.js') }}"></script>
+    <script>
+    const fetchVotingStatus = async () => {
+        try {
+            const response = await fetch("/voting_status");
+            const { status } = await response.json();
+            const container = document.getElementById("voteResult");
+
+            if (status === "inactive") {
+                container.innerHTML = `
+                    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
+                        <p class="font-bold">Voting belum dimulai</p>
+                        <p>Silakan mulai voting dari panel admin jika sudah siap.</p>
+                    </div>
+                `;
+            } else if (status === "active") {
+                container.innerHTML = `
+                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4" role="alert">
+                        <p class="font-bold">Voting sedang berlangsung</p>
+                        <p>Hasil voting akan tersedia setelah proses voting selesai.</p>
+                    </div>
+                `;
+            } else if (status === "completed") {
+                // Fetch results if voting is completed
+                const resultsResponse = await fetch("/api/results");
+                const resultsData = await resultsResponse.json();
+
+                if (resultsData.error) {
+                    container.innerHTML = `
+                        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+                            <p class="font-bold">Terjadi kesalahan</p>
+                            <p>${resultsData.error}</p>
+                        </div>
+                    `;
+                } else {
+                    const results = resultsData.results; // Format: { candidateName: voteCount }
+                    const candidates = resultsData.candidates; // Array: [{name: 'Daniel', photo: 'enak.png'}, ...]
+
+                    // Display results with a pie chart
+                    let resultsHtml = `
+                        <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4" role="alert">
+                            <p class="font-bold">Hasil Voting</p>
+                            <p>Berikut adalah hasil akhir dari proses voting:</p>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-4">
+                            <div class="bg-white rounded-lg shadow-sm p-6">
+                                <h2 class="text-xl font-semibold text-gray-800 mb-4">Daftar Kandidat</h2>
+                                <div id="candidatesContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                    <!-- Candidates will be inserted here -->
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg shadow-sm p-6">
+                                <h2 class="text-xl font-semibold text-gray-800 mb-4">Distribusi Suara</h2>
+                                <div class="aspect-square">
+                                    <canvas id="voteChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    container.innerHTML = resultsHtml;
+
+                    // Fill Candidates Data
+                    const candidatesContainer = document.getElementById("candidatesContainer");
+                    candidates.forEach(candidate => {
+                        const photoUrl = candidate.photo
+                            ? `/static/uploads/candidates/${candidate.photo}`
+                            : '/static/uploads/candidates/default.png';
+
+                        candidatesContainer.innerHTML += `
+                            <div class="text-center">
+                                <img class="w-24 h-24 rounded-full mx-auto object-cover" src="${photoUrl}" alt="${candidate.name}">
+                                <p class="text-gray-800 font-medium mt-2">${candidate.name}</p>
+                                <p class="text-gray-600">${results[candidate.name] || 0} Suara</p>
+                            </div>
+                        `;
+                    });
+
+                    // Create Pie Chart
+                    const chartLabels = Object.keys(results); // Candidate names
+                    const chartData = Object.values(results); // Vote counts
+                    const chartColors = ['rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 206, 86, 0.7)'];
+
+                    const ctx = document.getElementById("voteChart").getContext("2d");
+                    new Chart(ctx, {
+                        type: "pie",
+                        data: {
+                            labels: chartLabels,
+                            datasets: [{
+                                data: chartData,
+                                backgroundColor: chartColors,
+                                borderColor: chartColors.map(color => color.replace('0.7', '1')),
+                                borderWidth: 1,
+                            }],
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: "top",
+                                },
+                            },
+                        },
+                    });
+                }
+            } else {
+                container.innerHTML = `
+                    <div class="bg-gray-100 border-l-4 border-gray-500 text-gray-700 p-4" role="alert">
+                        <p class="font-bold">Status tidak dikenal</p>
+                        <p>Periksa status voting di sistem backend.</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error("Error fetching voting status:", error);
+            container.innerHTML = `
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+                    <p class="font-bold">Terjadi kesalahan</p>
+                    <p>Tidak dapat memuat status voting. Silakan coba lagi nanti.</p>
+                </div>
+            `;
+        }
+    };
+
+    // Call the function on page load
+    fetchVotingStatus();
+    </script>
   </head>
   <!-- UNTUK FLASH MESSAGE -->
   {% with messages = get_flashed_messages(with_categories=True) %} {% if
@@ -64,6 +191,10 @@
         <div class="text-center">
           <h1 id="welcomeHeader" class="text-3xl font-bold"></h1>
           <p class="mt-4">Sistem Manajemen Pemilihan</p>
+        </div>
+
+        <div id="voteResult">
+
         </div>
 
         <div class="flex justify-center gap-4">

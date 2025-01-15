@@ -156,6 +156,9 @@ def start_voting():
     """
     if session.get("role") != "admin":
         return jsonify({"error": "Unauthorized"}), 403
+    
+    if voting_status["status"] == "active":
+        return jsonify({"error": "Voting sedang aktif."}), 400
 
     voting_status["status"] = "active"
     return jsonify({"message": "Voting telah dimulai."}), 200
@@ -170,6 +173,9 @@ def end_voting():
 
     if session.get("role") != "admin":
         return jsonify({"error": "Unauthorized"}), 403
+    
+    if voting_status["status"] == "completed":
+        return jsonify({"error": "Hasil sudah ditampilkan."}), 400
 
     voting_status["status"] = "completed"
     return jsonify({"message": "Voting telah selesai."}), 200

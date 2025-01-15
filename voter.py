@@ -103,7 +103,7 @@ def validate_private_key():
             )
             return jsonify({"message": "The key pair is valid!"}), 200
         except InvalidSignature:
-            return jsonify({"error": "The key pair is invalid!"}), 400
+            return jsonify({"error": "Kunci yang anda tunjukan tidak sesuai, vote dibatalkan!"}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
