@@ -2,9 +2,16 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
 from voter_data import VotersData
+from candidate_data import CandidateData
+from paillier import PaillierEVoting
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 # Blueprint untuk auth
 auth = Blueprint('auth', __name__)
+
+e_voting = PaillierEVoting()
 
 # Dummy user database dengan role
 users = {
@@ -12,6 +19,15 @@ users = {
 }
 
 voting_status = {"status": "inactive"}
+
+candidates = CandidateData()
+def create_candidate_map(candidates_data):
+    return {candidate['name']: idx + 1 for idx, candidate in enumerate(candidates_data)}
+candidates_name = candidates.load_candidates()
+candidate_map = create_candidate_map(candidates_name)
+print(f"Candidate Name: {candidates_name}")
+print(f"Candidate Map: {candidate_map}")
+
 
 voters_data = VotersData()
 @auth.route("/login", methods=["GET", "POST"])
@@ -149,6 +165,9 @@ def end_voting():
     """
     Admin menyelesaikan voting.
     """
+    if voting_status["status"] != "active":
+        return jsonify({"error": "Voting tidak sedang aktif."}), 400
+
     if session.get("role") != "admin":
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -162,7 +181,7 @@ def get_voting_status():
     """
     return jsonify(voting_status), 200
 
-@auth.route("/vote", methods=["POST"])
+@auth.route("/api/vote", methods=["POST"])
 def vote():
     """
     User memberikan suara.
@@ -171,10 +190,37 @@ def vote():
         return jsonify({"error": "Voting belum dimulai atau sudah selesai."}), 400
 
     # Proses vote (contoh sederhana)
-    data = request.json
+    data = request.get_json()
+    logging.debug(f"Data diterima: {data}")
     voter_id = data.get("voterId")
     choice = data.get("candidate")
 
-    # Simpan suara di database (implementasi disesuaikan)
-    print(f"Voter ID: {voter_id} memilih {choice}")
-    return jsonify({"message": "Vote berhasil disimpan."}), 200
+    if not choice:
+        return jsonify({"error": "Pilihan kandidat diperlukan."}), 400
+    
+    try:
+        # Lakukan enkripsi
+        encrypted_vote = e_voting.vote(voter_id, choice, candidate_map)
+        logging.debug(f"Voter {voter_id} memilih {choice}")
+        logging.debug(f"ENKRIPSI: {encrypted_vote}")
+        # Suara berhasil disimpan
+        return jsonify({"message": "Vote berhasil disimpan.", "encrypted_vote": encrypted_vote.ciphertext()}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    
+@auth.route("/api/results", methods=["GET"])
+def results():
+    """
+    Menampilkan hasil voting setelah voting selesai.
+    """
+    if voting_status["status"] != "completed":
+        return jsonify({"error": "Hasil hanya dapat ditampilkan setelah voting selesai."}), 400
+
+    try:
+        # Dekripsi dan hitung hasil suara
+        results = e_voting.tally_votes(candidates_name, candidate_map)
+        print(results)
+
+        return jsonify({"results": results}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

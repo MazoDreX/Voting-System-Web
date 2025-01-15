@@ -1,7 +1,7 @@
 import os
 import qrcode
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.exceptions import InvalidSignature
 from flask import Blueprint, jsonify, request, session
 from voter_data import VotersData
@@ -74,11 +74,22 @@ def validate_private_key():
     try:
         data = request.get_json()
         voter_id = data.get("voter_id")
-        if not voter_id:
-            return jsonify({"error": "voter_id is required"}), 400
+        private_key_pem = data.get("privateKey")
         
+        if not voter_id or not private_key_pem:
+            return jsonify({"error": "voter_id and private key is required"}), 400
+        
+        try:
+            private_key = serialization.load_pem_private_key(
+                private_key_pem.encode(),
+                password=None
+            )
+        except ValueError:
+            return jsonify({"error": "Invalid private key format"}), 400
+
         # Load keys
-        private_key, public_key = key_manager.load_keys(voter_id)
+
+        public_key = key_manager.load_public_key(voter_id)
         test_message = b"Ini adalah Aplikasi Sistem Voting."
         signature = private_key.sign(
             test_message,

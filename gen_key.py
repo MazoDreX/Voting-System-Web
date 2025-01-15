@@ -103,3 +103,19 @@ class KeyManager:
 
         return private_key_pem.decode()
 
+    def load_public_key(self, voter_id):
+        """
+        Memuat kunci publik dari file.
+        :param voter_id: ID unik untuk voter.
+        :return: Public key dalam format objek.
+        """
+        public_key_path = os.path.join(self.key_dir, f"{voter_id}_public_key.pem")
+
+        if not os.path.exists(public_key_path):
+            raise FileNotFoundError(f"Kunci publik untuk voter {voter_id} tidak ditemukan.")
+
+        # Load public key
+        with open(public_key_path, "rb") as pub_file:
+            public_key = serialization.load_pem_public_key(pub_file.read())
+
+        return public_key

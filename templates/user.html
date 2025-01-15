@@ -82,19 +82,25 @@
                     </form>
                 </main>
                 `;
-                document.getElementById("vote-form").addEventListener("submit", async (e) => {
-                    e.preventDefault();
-                    const choice = document.getElementById("choice").value;
-                    const response = await fetch("/vote", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ voter_id: "12345", choice }),
-                    });
-                    const result = await response.json();
-                    alert(result.message);
-                });
             } else if (status === "completed") {
-                container.innerHTML = "<p>Voting telah selesai. Terima kasih telah berpartisipasi.</p>";
+                const resultsResponse = await fetch('/api/results');
+                const resultsData = await resultsResponse.json();
+                if (resultsData.error) {
+                    container.innerHTML = "<p>Terjadi kesalahan saat mengambil hasil voting.</p>";
+                } else {
+                    // Tampilkan hasil voting
+                    const results = resultsData.results;
+                    let resultsHtml = "<h3>Hasil Voting:</h3><ul>";
+
+                    for (let candidate in results) {
+                        resultsHtml += `<li>${candidate}: ${results[candidate]} suara</li>`;
+                    }
+                    resultsHtml += "</ul>";
+
+                    container.innerHTML = resultsHtml;
+                }
+            } else {
+                container.innerHTML = "<p>Status voting tidak diketahui.</p>";
             }
         }
 
@@ -144,7 +150,7 @@
 
     <script>
         let candidates = [];
-        let selectedCandidate = null;
+        let selectedCandidate   = null;
         let html5QrCode;
         let voterId = "{{ session['id'] }}";
         console.log(voterId)
@@ -162,11 +168,11 @@
             e.preventDefault();
 
             if (!selectedCandidate) {
-                alert('Please select a candidate to vote');
+                alert('Tolong pilih candidate terlebih dahulu');
                 return;
             }
 
-            if (!confirm('Are you sure you want to submit your vote? This action cannot be undone.')) {
+            if (!confirm('Apakah anda yakin dengan pilihan ini? Pilihan anda tidak akan bisa dirubah.')) {
                 return;
             }
 
@@ -180,6 +186,11 @@
                     alert('Failed to get private key from QR code');
                     return;
                 }
+                
+                console.log(JSON.stringify({
+                    voterId: voterId,
+                    privateKey: privateKey
+                }))
 
                 // Step 2: Send private key to backend for validation
                 const validateResponse = await fetch('/api/voters/validate-private-key', {
@@ -187,7 +198,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ voter_id: voterId}),
+                    body: JSON.stringify({ voter_id: voterId, privateKey: privateKey}),
                 });
 
                 const validateData = await validateResponse.json();
@@ -199,11 +210,6 @@
                     return;
                 }
 
-                console.log(JSON.stringify({
-                    candidateChosen: selectedCandidate,
-                    voterId: validateData.voterId
-                }))
-
                 // Step 3: Submit vote to backend
                 const voteResponse = await fetch('/api/vote', {
                     method: 'POST',
@@ -211,17 +217,17 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        candidateId: selectedCandidate,
-                        voterId: validateData.voterId, // Assume the backend returns the voter ID upon validation
+                        voterId: voterId,
+                        candidate: selectedCandidate, // Assume the backend returns the voter ID upon validation
                     }),
                 });
 
                 const voteData = await voteResponse.json();
+
                 if (voteResponse.ok) {
-                    alert('Vote submitted successfully!');
-                    window.location.href = '/vote-confirmation';
+                    alert('Vote Berhasil dikirim!');
                 } else {
-                    alert(voteData.error || 'Failed to submit vote');
+                    alert(voteData.error || 'Gagal menyimpan vote');
                 }
             } catch (error) {
                 console.error('Error submitting vote:', error);
@@ -235,9 +241,6 @@
 
                 const qrCodeSuccessCallback = (decodedText, decodedResult) => {
                     html5QrCode.stop().then(() => {
-                        alert("QR Code decoded: " + decodedText);
-                        // Here you can send the decoded text (private key) to the backend for validation
-
                         resolve(decodedText); // Return the decoded text (private key)
                         document.getElementById("qr-modal").classList.add("hidden");
                     });
