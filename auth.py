@@ -83,6 +83,7 @@ def admin_dashboard():
 @auth.route("/user")
 def user_dashboard():
     if "id" in session and session.get("role") == "user":
+        print(voting_status)
         return render_template("user.html", id=session["id"])
     else:
         flash("Akses ditolak. Users only.", "danger")
@@ -171,8 +172,8 @@ def vote():
 
     # Proses vote (contoh sederhana)
     data = request.json
-    voter_id = data.get("voter_id")
-    choice = data.get("choice")
+    voter_id = data.get("voterId")
+    choice = data.get("candidate")
 
     # Simpan suara di database (implementasi disesuaikan)
     print(f"Voter ID: {voter_id} memilih {choice}")

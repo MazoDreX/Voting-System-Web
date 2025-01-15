@@ -13,7 +13,7 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# Get all candidates (Admin only)
+# Get all candidates
 @candidate_bp.route("/", methods=["GET"])
 def get_candidates():
     candidates = candidate_data.load_candidates()

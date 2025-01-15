@@ -5,6 +5,7 @@
     <link href="{{url_for('static',filename='css/output.css')}}" rel="stylesheet">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
     <script>
         async function loadVotingPage() {
             const response = await fetch("/voting_status");
@@ -127,9 +128,26 @@
         <div id="voting-container">
         
         </div>
+
+        <!-- QR CODE MODAL-->
+        <div id="qr-modal" class="absolute top-0 left-0 w-full h-full bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+            <div class="bg-white p-4 rounded-lg shadow-lg w-96">
+                <h2 class="text-xl font-bold mb-4 text-center">Scan QR Code</h2>
+                <div id="qr-reader" class="w-full h-64 border border-gray-300 rounded-md mb-4"></div>
+                <div class="flex justify-center">
+                    <button id="close-modal" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 focus:outline-none">Close</button>
+                </div>
+            </div>
+        </div>
+        
+    <!-- END OF BODY-->
+
     <script>
         let candidates = [];
-        let selectedCandidateId = null;
+        let selectedCandidate = null;
+        let html5QrCode;
+        let voterId = "{{ session['id'] }}";
+        console.log(voterId)
 
         document.addEventListener("DOMContentLoaded", () => {
             const flashMessages = document.querySelectorAll(".fixed .p-4");
@@ -142,7 +160,8 @@
 
         async function handleVoteSubmit(e) {
             e.preventDefault();
-            if (!selectedCandidateId) {
+
+            if (!selectedCandidate) {
                 alert('Please select a candidate to vote');
                 return;
             }
@@ -151,30 +170,108 @@
                 return;
             }
 
+            document.getElementById("qr-modal").classList.remove("hidden");
+
             try {
-                const response = await fetch('/api/vote', {
+                
+                // Step 1: Scan QR code to get private key
+                const privateKey = await scanQRCode(); // Fungsi untuk memindai QR code dan mendapatkan private key
+                if (!privateKey) {
+                    alert('Failed to get private key from QR code');
+                    return;
+                }
+
+                // Step 2: Send private key to backend for validation
+                const validateResponse = await fetch('/api/voters/validate-private-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ voter_id: voterId}),
+                });
+
+                const validateData = await validateResponse.json();
+                console.log(validateData);
+
+                if (!validateResponse.ok || validateData.message !== "The key pair is valid!") {
+                    // Jika response tidak OK atau message bukan "The key pair is valid!", tampilkan error
+                    alert(validateData.error || 'Invalid private key. Vote cannot be processed.');
+                    return;
+                }
+
+                console.log(JSON.stringify({
+                    candidateChosen: selectedCandidate,
+                    voterId: validateData.voterId
+                }))
+
+                // Step 3: Submit vote to backend
+                const voteResponse = await fetch('/api/vote', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        candidateId: selectedCandidateId
-                    })
+                        candidateId: selectedCandidate,
+                        voterId: validateData.voterId, // Assume the backend returns the voter ID upon validation
+                    }),
                 });
 
-                const data = await response.json();
-                
-                if (response.ok) {
+                const voteData = await voteResponse.json();
+                if (voteResponse.ok) {
                     alert('Vote submitted successfully!');
                     window.location.href = '/vote-confirmation';
                 } else {
-                    alert(data.error || 'Failed to submit vote');
+                    alert(voteData.error || 'Failed to submit vote');
                 }
             } catch (error) {
                 console.error('Error submitting vote:', error);
                 alert('An error occurred while submitting your vote');
             }
         }
+
+        async function scanQRCode() {
+            return new Promise((resolve, reject) => {
+                html5QrCode = new Html5Qrcode("qr-reader");
+
+                const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                    html5QrCode.stop().then(() => {
+                        alert("QR Code decoded: " + decodedText);
+                        // Here you can send the decoded text (private key) to the backend for validation
+
+                        resolve(decodedText); // Return the decoded text (private key)
+                        document.getElementById("qr-modal").classList.add("hidden");
+                    });
+                };
+
+                const qrCodeErrorCallback = (errorMessage) => {
+                    console.warn("QR Code error", errorMessage);
+                };
+
+                html5QrCode.start(
+                    { facingMode: "environment" }, // Camera
+                    {
+                        fps: 10,  // Frame rate
+                        qrbox: 500 // QR scanning box size
+                    },
+                    qrCodeSuccessCallback,
+                    qrCodeErrorCallback
+                ).catch(err => {
+                    reject(err);
+                });
+            });
+        }
+
+        // Close the QR modal
+        document.getElementById("close-modal").addEventListener("click", function() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    console.log("QR Code scanner stopped");
+                }).catch(err => {
+                    console.error("Error stopping the QR scanner", err);
+                });
+            }
+            document.getElementById("qr-modal").classList.add("hidden");
+        });
 
         async function loadCandidates() {
             try {
@@ -225,7 +322,7 @@
                            name="vote" 
                            value="${candidate.id}"
                            class="peer hidden"
-                           ${selectedCandidateId === candidate.id ? 'checked' : ''}>
+                           ${selectedCandidate === candidate.id ? 'checked' : ''}>
                     <label for="candidate${index}" 
                            class="block cursor-pointer transition-all duration-300 peer-checked:ring-4 peer-checked:ring-blue-500 rounded-xl">
                         <div class="relative">
@@ -265,8 +362,8 @@
                 // Add click handler for the entire card
                 const radio = card.querySelector('input[type="radio"]');
                 card.addEventListener('click', () => {
-                    selectedCandidateId = candidate.name;
-                    console.log(selectedCandidateId)
+                    selectedCandidate = candidate.name;
+                    console.log(selectedCandidate)
                     radio.checked = true;
                     updateSelectionBanner(candidate.name);
                     

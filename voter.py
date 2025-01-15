@@ -1,7 +1,9 @@
 import os
 import qrcode
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes
+from cryptography.exceptions import InvalidSignature
 from flask import Blueprint, jsonify, request, session
-from werkzeug.utils import secure_filename
 from voter_data import VotersData
 from gen_key import KeyManager
 
@@ -67,3 +69,30 @@ def add_voters():
 
     return jsonify({"message": f"Voter {name} berhasil ditambahkan!", "qr_code": qr_img_path}), 201
     
+@voter_bp.route("/validate-private-key", methods=["POST"])
+def validate_private_key():
+    try:
+        data = request.get_json()
+        voter_id = data.get("voter_id")
+        if not voter_id:
+            return jsonify({"error": "voter_id is required"}), 400
+        
+        # Load keys
+        private_key, public_key = key_manager.load_keys(voter_id)
+        test_message = b"Ini adalah Aplikasi Sistem Voting."
+        signature = private_key.sign(
+            test_message,
+            ec.ECDSA(hashes.SHA256())
+        )
+        try:
+            public_key.verify(
+                signature,
+                test_message,
+                ec.ECDSA(hashes.SHA256())
+            )
+            return jsonify({"message": "The key pair is valid!"}), 200
+        except InvalidSignature:
+            return jsonify({"error": "The key pair is invalid!"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
