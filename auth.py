@@ -221,6 +221,6 @@ def results():
         results = e_voting.tally_votes(candidates_name, candidate_map)
         print(results)
 
-        return jsonify({"results": results}), 200
+        return jsonify({"results": results, "candidates": candidates_name}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
