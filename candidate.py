@@ -12,14 +12,13 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
-# Get all candidates
+# Ambil data kandidat
 @candidate_bp.route("/", methods=["GET"])
 def get_candidates():
     candidates = candidate_data.load_candidates()
     return jsonify({"candidates": candidates})
 
-# Add a new candidate (Admin only)
+# Tambah data kandidat
 @candidate_bp.route("/", methods=["POST"])
 def add_candidate():
     if session.get("role") != "admin":
@@ -46,8 +45,7 @@ def add_candidate():
 
     return jsonify({"message": f"Kandidat {name} ditambahkan!", "photo": photo_filename}), 201
 
-
-# Delete a candidate and their photo (Admin only)
+# Hapus data kandidat
 @candidate_bp.route("/<int:index>", methods=["DELETE"])
 def delete_candidate(index):
     if session.get("role") != "admin":
@@ -58,7 +56,6 @@ def delete_candidate(index):
         deleted_candidate = candidates.pop(index)
         candidate_data.save_candidates(candidates)
 
-        # Delete the candidate's photo file if exists
         if deleted_candidate.get("photo"):
             photo_path = os.path.join(UPLOAD_FOLDER, deleted_candidate["photo"])
             if os.path.exists(photo_path):

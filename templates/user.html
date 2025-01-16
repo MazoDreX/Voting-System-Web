@@ -1,20 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <title>Pemilihan Voting</title>
-    <link href="{{url_for('static',filename='css/output.css')}}" rel="stylesheet">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link
+      href="{{url_for('static',filename='css/output.css')}}"
+      rel="stylesheet"
+    />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chart.umd.js') }}"></script>
     <script>
-        async function loadVotingPage() {
-            const response = await fetch("/voting_status");
-            const { status } = await response.json();
-            const container = document.getElementById("voting-container");
+      async function loadVotingPage() {
+        const response = await fetch("/voting_status");
+        const { status } = await response.json();
+        const container = document.getElementById("voting-container");
 
-            if (status === "inactive") {
-                container.innerHTML = `
+        if (status === "inactive") {
+          container.innerHTML = `
                 <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
                 <!-- Main container -->
                 <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
@@ -45,8 +48,8 @@
                 </footer>
             </div>       
                 `;
-            } else if (status === "active") {
-                container.innerHTML = `
+        } else if (status === "active") {
+          container.innerHTML = `
                     <div id="selectionBanner" class="hidden bg-blue-50 border-b border-blue-100">
                     <div class="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8">
                         <div class="flex items-center justify-between">
@@ -83,13 +86,14 @@
                     </form>
                 </main>
                 `;
-            } else if (status === "completed") {
-                const resultsResponse = await fetch('/api/results');
-                const resultsData = await resultsResponse.json();
-                if (resultsData.error) {
-                    container.innerHTML = "<p>Terjadi kesalahan saat mengambil hasil voting.</p>";
-                } else {
-                    container.innerHTML = `
+        } else if (status === "completed") {
+          const resultsResponse = await fetch("/api/results");
+          const resultsData = await resultsResponse.json();
+          if (resultsData.error) {
+            container.innerHTML =
+              "<p>Terjadi kesalahan saat mengambil hasil voting.</p>";
+          } else {
+            container.innerHTML = `
                     <body class="min-h-screen p-4 md:p-8">
                         <div class="max-w-7xl mx-auto">
                             <!-- Header -->
@@ -116,27 +120,32 @@
                                 </div>
                             </div>
                         </div>
-                    `
+                    `;
 
-                    // Tampilkan hasil voting
-                    const results = resultsData.results;
-                    const candidates = resultsData.candidates;
-                    const candidatesContainer = document.getElementById('candidatesContainer');
+            // Tampilkan hasil voting
+            const results = resultsData.results;
+            const candidates = resultsData.candidates;
+            const candidatesContainer = document.getElementById(
+              "candidatesContainer"
+            );
 
-                    // Data for chart
-                    const labels = [];
-                    const data = [];
-                    const totalVotes = Object.values(results).reduce((a, b) => a + b, 0);
+            // Data for chart
+            const labels = [];
+            const data = [];
+            const totalVotes = Object.values(results).reduce(
+              (a, b) => a + b,
+              0
+            );
 
-                    // Generate candidate cards
-                    candidates.forEach(candidate => {
-                        const voteCount = results[candidate.name] || 0;
-                        const percentage = ((voteCount / totalVotes) * 100).toFixed(1);
-                        const photoUrl = candidate.photo
-                            ? `/static/uploads/candidates/${candidate.photo}`
-                            : '/static/uploads/candidates/default.png';
-                        
-                        const candidateCard = `
+            // Generate candidate cards
+            candidates.forEach((candidate) => {
+              const voteCount = results[candidate.name] || 0;
+              const percentage = ((voteCount / totalVotes) * 100).toFixed(1);
+              const photoUrl = candidate.photo
+                ? `/static/uploads/candidates/${candidate.photo}`
+                : "/static/uploads/candidates/default.png";
+
+              const candidateCard = `
                             <div class="bg-gray-50 rounded-lg p-4 text-center">
                                 <img src="${photoUrl}" alt="${candidate.name}" 
                                     class="w-20 h-20 rounded-full mx-auto mb-3 object-cover shadow-sm">
@@ -148,286 +157,349 @@
                                 <div class="text-sm text-gray-600">${percentage}%</div>
                             </div>
                         `;
-                        candidatesContainer.innerHTML += candidateCard;
+              candidatesContainer.innerHTML += candidateCard;
 
-                        // Add data for chart
-                        labels.push(candidate.name);
-                        data.push(voteCount);
-                    });
+              // Add data for chart
+              labels.push(candidate.name);
+              data.push(voteCount);
+            });
 
-                    // Create pie chart
-                    const ctx = document.getElementById('voteChart').getContext('2d');
-                    new Chart(ctx, {
-                        type: 'pie',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                data: data,
-                                backgroundColor: [
-                                    'rgba(59, 130, 246, 0.8)', // blue-500
-                                    'rgba(16, 185, 129, 0.8)', // green-500
-                                    'rgba(239, 68, 68, 0.8)',  // red-500
-                                    'rgba(245, 158, 11, 0.8)', // yellow-500
-                                    'rgba(139, 92, 246, 0.8)', // purple-500
-                                    'rgba(236, 72, 153, 0.8)'  // pink-500
-                                ],
-                                borderColor: 'white',
-                                borderWidth: 2
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: {
-                                        padding: 20,
-                                        font: {
-                                            size: 12
-                                        }
-                                    }
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            const value = context.raw;
-                                            const percentage = ((value / totalVotes) * 100).toFixed(1);
-                                            return `${value} votes (${percentage}%)`;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-            } else {
-                container.innerHTML = "<p>Status voting tidak diketahui.</p>";
-            }
+            // Create pie chart
+            const ctx = document.getElementById("voteChart").getContext("2d");
+            new Chart(ctx, {
+              type: "pie",
+              data: {
+                labels: labels,
+                datasets: [
+                  {
+                    data: data,
+                    backgroundColor: [
+                      "rgba(59, 130, 246, 0.8)", // blue-500
+                      "rgba(16, 185, 129, 0.8)", // green-500
+                      "rgba(239, 68, 68, 0.8)", // red-500
+                      "rgba(245, 158, 11, 0.8)", // yellow-500
+                      "rgba(139, 92, 246, 0.8)", // purple-500
+                      "rgba(236, 72, 153, 0.8)", // pink-500
+                    ],
+                    borderColor: "white",
+                    borderWidth: 2,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                  legend: {
+                    position: "bottom",
+                    labels: {
+                      padding: 20,
+                      font: {
+                        size: 12,
+                      },
+                    },
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: function (context) {
+                        const value = context.raw;
+                        const percentage = ((value / totalVotes) * 100).toFixed(
+                          1
+                        );
+                        return `${value} votes (${percentage}%)`;
+                      },
+                    },
+                  },
+                },
+              },
+            });
+          }
+        } else {
+          container.innerHTML = "<p>Status voting tidak diketahui.</p>";
         }
-        
-        document.addEventListener("DOMContentLoaded", loadVotingPage);
+      }
 
+      document.addEventListener("DOMContentLoaded", loadVotingPage);
     </script>
-</head>
-<!-- UNTUK FLASH MESSAGE -->
-{% with messages = get_flashed_messages(with_categories=True) %}
-  {% if messages %}
-    <div class="fixed top-5 right-5 space-y-4">
-      {% for category, message in messages %}
-        <div class="p-4 text-white rounded-lg shadow-lg {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }}">
-          {{ message }}
-        </div>
-      {% endfor %}
+  </head>
+  <!-- UNTUK FLASH MESSAGE -->
+  {% with messages = get_flashed_messages(with_categories=True) %} {% if
+  messages %}
+  <div class="fixed top-5 right-5 space-y-4">
+    {% for category, message in messages %}
+    <div
+      class="p-4 text-white rounded-lg shadow-lg {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }}"
+    >
+      {{ message }}
     </div>
-  {% endif %}
-{% endwith %}
-<body>
+    {% endfor %}
+  </div>
+  {% endif %} {% endwith %}
+  <body>
     <!-- Header -->
     <header class="bg-white shadow">
-        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <h1 class="text-3xl font-bold text-gray-900">Voting Candidates</h1>
-            <h1>Selamat datang, {{ id }}</h1>
-            <a class="" href="/logout">Logout</a>
+      <div
+        class="flex justify-between max-w-screen-2xl mx-auto py-6 px-4 sm:px-6 lg:px-8"
+      >
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Voting Candidates</h1>
+          <h1>Selamat datang, {{ id }}</h1>
         </div>
+        <a
+          href="/logout"
+          class="flex gap-2 items-center px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"
+            />
+          </svg>
+          Logout
+        </a>
+      </div>
     </header>
 
-        <!-- Selection Info Banner -->
-        <div id="voting-container">
-        
-        </div>
+    <!-- Selection Info Banner -->
+    <div id="voting-container"></div>
 
-        <!-- QR CODE MODAL-->
-        <div id="qr-modal" class="absolute top-0 left-0 w-full h-full bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
-            <div class="bg-white p-4 rounded-lg shadow-lg w-96">
-                <h2 class="text-xl font-bold mb-4 text-center">Scan QR Code</h2>
-                <div id="qr-reader" class="w-full h-64 border border-gray-300 rounded-md mb-4"></div>
-                <div class="flex justify-center">
-                    <button id="close-modal" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 focus:outline-none">Close</button>
-                </div>
-            </div>
+    <!-- QR CODE MODAL-->
+    <div
+      id="qr-modal"
+      class="absolute top-0 left-0 w-full h-full bg-black bg-opacity-50 z-50 flex items-center hidden justify-center"
+    >
+      <div class="bg-white p-4 rounded-lg shadow-lg w-96">
+        <h2 class="text-xl font-bold mb-4 text-center">Scan QR Code</h2>
+        <div
+          id="qr-reader"
+          class="w-full h-64 border border-gray-300 rounded-md mb-4"
+        ></div>
+        <div class="flex justify-center">
+          <button
+            id="close-modal"
+            class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 focus:outline-none"
+          >
+            Close
+          </button>
         </div>
-        
+      </div>
+    </div>
+
     <!-- END OF BODY-->
 
     <script>
-        let candidates = [];
-        let selectedCandidate   = null;
-        let html5QrCode;
-        let voterId = "{{ session['id'] }}";
-        console.log(voterId)
+      let candidates = [];
+      let selectedCandidate = null;
+      let html5QrCode;
+      let voterId = "{{ session['id'] }}";
+      console.log(voterId);
 
-        document.addEventListener("DOMContentLoaded", () => {
-            const flashMessages = document.querySelectorAll(".fixed .p-4");
-            setTimeout(() => {
-            flashMessages.forEach(msg => msg.remove());
-            }, 5000); // Hilang setelah 5 detik
-        });
+      document.addEventListener("DOMContentLoaded", () => {
+        const flashMessages = document.querySelectorAll(".fixed .p-4");
+        setTimeout(() => {
+          flashMessages.forEach((msg) => msg.remove());
+        }, 5000); // Hilang setelah 5 detik
+      });
 
-        document.addEventListener('DOMContentLoaded', loadCandidates);
+      document.addEventListener("DOMContentLoaded", loadCandidates);
 
-        async function handleVoteSubmit(e) {
-            e.preventDefault();
+      async function handleVoteSubmit(e) {
+        e.preventDefault();
 
-            if (!selectedCandidate) {
-                alert('Tolong pilih candidate terlebih dahulu');
-                return;
-            }
-
-            if (!confirm('Apakah anda yakin dengan pilihan ini? Pilihan anda tidak akan bisa dirubah.')) {
-                return;
-            }
-
-            document.getElementById("qr-modal").classList.remove("hidden");
-
-            try {
-                
-                // Step 1: Scan QR code to get private key
-                const privateKey = await scanQRCode(); // Fungsi untuk memindai QR code dan mendapatkan private key
-                if (!privateKey) {
-                    alert('Failed to get private key from QR code');
-                    return;
-                }
-                
-                console.log(JSON.stringify({
-                    voterId: voterId,
-                    privateKey: privateKey
-                }))
-
-                // Step 2: Send private key to backend for validation
-                const validateResponse = await fetch('/api/voters/validate-private-key', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ voter_id: voterId, privateKey: privateKey}),
-                });
-
-                const validateData = await validateResponse.json();
-                console.log(validateData);
-
-                if (!validateResponse.ok || validateData.message !== "The key pair is valid!") {
-                    // Jika response tidak OK atau message bukan "The key pair is valid!", tampilkan error
-                    alert(validateData.error || 'Invalid private key. Vote cannot be processed.');
-                    return;
-                }
-
-                // Step 3: Submit vote to backend
-                const voteResponse = await fetch('/api/vote', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        voterId: voterId,
-                        candidate: selectedCandidate, // Assume the backend returns the voter ID upon validation
-                    }),
-                });
-
-                const voteData = await voteResponse.json();
-
-                if (voteResponse.ok) {
-                    alert('Vote Berhasil dikirim!');
-                } else {
-                    alert(voteData.error || 'Gagal menyimpan vote');
-                }
-            } catch (error) {
-                console.error('Error submitting vote:', error);
-                alert('An error occurred while submitting your vote');
-            }
+        if (!selectedCandidate) {
+          alert("Tolong pilih candidate terlebih dahulu");
+          return;
         }
 
-        async function scanQRCode() {
-            return new Promise((resolve, reject) => {
-                html5QrCode = new Html5Qrcode("qr-reader");
+        if (
+          !confirm(
+            "Apakah anda yakin dengan pilihan ini? Pilihan anda tidak akan bisa dirubah."
+          )
+        ) {
+          return;
+        }
 
-                const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                    html5QrCode.stop().then(() => {
-                        resolve(decodedText); // Return the decoded text (private key)
-                        document.getElementById("qr-modal").classList.add("hidden");
-                    });
-                };
+        document.getElementById("qr-modal").classList.remove("hidden");
 
-                const qrCodeErrorCallback = (errorMessage) => {
-                    console.warn("QR Code error", errorMessage);
-                };
+        try {
+          // Step 1: Scan QR code to get private key
+          const privateKey = await scanQRCode(); // Fungsi untuk memindai QR code dan mendapatkan private key
+          if (!privateKey) {
+            alert("Failed to get private key from QR code");
+            return;
+          }
 
-                html5QrCode.start(
-                    { facingMode: "environment" }, // Camera
-                    {
-                        fps: 10,  // Frame rate
-                        qrbox: 500 // QR scanning box size
-                    },
-                    qrCodeSuccessCallback,
-                    qrCodeErrorCallback
-                ).catch(err => {
-                    reject(err);
-                });
+          console.log(
+            JSON.stringify({
+              voterId: voterId,
+              privateKey: privateKey,
+            })
+          );
+
+          // Step 2: Send private key to backend for validation
+          const validateResponse = await fetch(
+            "/api/voters/validate-private-key",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                voter_id: voterId,
+                privateKey: privateKey,
+              }),
+            }
+          );
+
+          const validateData = await validateResponse.json();
+          console.log(validateData);
+
+          if (
+            !validateResponse.ok ||
+            validateData.message !== "The key pair is valid!"
+          ) {
+            // Jika response tidak OK atau message bukan "The key pair is valid!", tampilkan error
+            alert(
+              validateData.error ||
+                "Invalid private key. Vote cannot be processed."
+            );
+            return;
+          }
+
+          // Step 3: Submit vote to backend
+          const voteResponse = await fetch("/api/vote", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              voterId: voterId,
+              candidate: selectedCandidate, // Assume the backend returns the voter ID upon validation
+            }),
+          });
+
+          const voteData = await voteResponse.json();
+
+          if (voteResponse.ok) {
+            alert("Vote Berhasil dikirim!");
+          } else {
+            alert(voteData.error || "Gagal menyimpan vote");
+          }
+        } catch (error) {
+          console.error("Error submitting vote:", error);
+          alert("An error occurred while submitting your vote");
+        }
+      }
+
+      async function scanQRCode() {
+        return new Promise((resolve, reject) => {
+          html5QrCode = new Html5Qrcode("qr-reader");
+
+          const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+            html5QrCode.stop().then(() => {
+              resolve(decodedText); // Return the decoded text (private key)
+              document.getElementById("qr-modal").classList.add("hidden");
             });
-        }
+          };
 
-        // Close the QR modal
-        document.getElementById("close-modal").addEventListener("click", function() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    console.log("QR Code scanner stopped");
-                }).catch(err => {
-                    console.error("Error stopping the QR scanner", err);
-                });
-            }
-            document.getElementById("qr-modal").classList.add("hidden");
+          const qrCodeErrorCallback = (errorMessage) => {
+            console.warn("QR Code error", errorMessage);
+          };
+
+          html5QrCode
+            .start(
+              { facingMode: "environment" }, // Camera
+              {
+                fps: 10, // Frame rate
+                qrbox: 500, // QR scanning box size
+              },
+              qrCodeSuccessCallback,
+              qrCodeErrorCallback
+            )
+            .catch((err) => {
+              reject(err);
+            });
+        });
+      }
+
+      // Close the QR modal
+      document
+        .getElementById("close-modal")
+        .addEventListener("click", function () {
+          if (html5QrCode) {
+            html5QrCode
+              .stop()
+              .then(() => {
+                console.log("QR Code scanner stopped");
+              })
+              .catch((err) => {
+                console.error("Error stopping the QR scanner", err);
+              });
+          }
+          document.getElementById("qr-modal").classList.add("hidden");
         });
 
-        async function loadCandidates() {
-            try {
-                const response = await fetch('/api/candidates/');
-                const data = await response.json();
-                
-                if (response.ok) {
-                    candidates = data.candidates;
-                    renderCandidates();
-                } else {
-                    showError(data.error || "Failed to load candidates");
-                }
-            } catch (error) {
-                console.error('Error loading candidates:', error);
-                showError("An error occurred while loading candidates");
-            }
-        }
+      async function loadCandidates() {
+        try {
+          const response = await fetch("/api/candidates/");
+          const data = await response.json();
 
-        function updateSelectionBanner(candidateName) {
-            const banner = document.getElementById('selectionBanner');
-            const nameSpan = document.getElementById('selectedCandidateName');
-            const submitBtn = document.getElementById('submitVoteBtn');
-            
-            if (candidateName) {
-                nameSpan.textContent = candidateName;
-                banner.classList.remove('hidden');
-                submitBtn.classList.remove('hidden');
-            } else {
-                banner.classList.add('hidden');
-                submitBtn.classList.add('hidden');
-            }
+          if (response.ok) {
+            candidates = data.candidates;
+            renderCandidates();
+          } else {
+            showError(data.error || "Failed to load candidates");
+          }
+        } catch (error) {
+          console.error("Error loading candidates:", error);
+          showError("An error occurred while loading candidates");
         }
+      }
 
-        function renderCandidates() {
-            const grid = document.getElementById('candidateGrid');
-            grid.innerHTML = '';
-            
-            candidates.forEach((candidate, index) => {
-                const photoUrl = candidate.photo 
-                    ? `/static/uploads/candidates/${candidate.photo}`
-                    : '/static/uploads/candidates/default.png';
-                
-                const card = document.createElement('div');
-                card.className = 'group relative bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg';
-                card.innerHTML = `
+      function updateSelectionBanner(candidateName) {
+        const banner = document.getElementById("selectionBanner");
+        const nameSpan = document.getElementById("selectedCandidateName");
+        const submitBtn = document.getElementById("submitVoteBtn");
+
+        if (candidateName) {
+          nameSpan.textContent = candidateName;
+          banner.classList.remove("hidden");
+          submitBtn.classList.remove("hidden");
+        } else {
+          banner.classList.add("hidden");
+          submitBtn.classList.add("hidden");
+        }
+      }
+
+      function renderCandidates() {
+        const grid = document.getElementById("candidateGrid");
+        grid.innerHTML = "";
+
+        candidates.forEach((candidate, index) => {
+          const photoUrl = candidate.photo
+            ? `/static/uploads/candidates/${candidate.photo}`
+            : "/static/uploads/candidates/default.png";
+
+          const card = document.createElement("div");
+          card.className =
+            "group relative bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg";
+          card.innerHTML = `
                     <input type="radio" 
                            id="candidate${index}" 
                            name="vote" 
                            value="${candidate.id}"
                            class="peer hidden"
-                           ${selectedCandidate === candidate.id ? 'checked' : ''}>
+                           ${
+                             selectedCandidate === candidate.id ? "checked" : ""
+                           }>
                     <label for="candidate${index}" 
                            class="block cursor-pointer transition-all duration-300 peer-checked:ring-4 peer-checked:ring-blue-500 rounded-xl">
                         <div class="relative">
@@ -451,8 +523,13 @@
                                     Candidate ${index + 1}
                                 </span>
                             </div>
-                            <h2 class="text-xl font-bold text-gray-900 mb-2">${candidate.name}</h2>
-                            <p class="text-gray-600 text-sm mb-4">${candidate.description || 'No description available'}</p>
+                            <h2 class="text-xl font-bold text-gray-900 mb-2">${
+                              candidate.name
+                            }</h2>
+                            <p class="text-gray-600 text-sm mb-4">${
+                              candidate.description ||
+                              "No description available"
+                            }</p>
                             
                             <!-- Selection Indicator -->
                             <div class="mt-4 flex items-center space-x-2">
@@ -462,29 +539,29 @@
                         </div>
                     </label>
                 `;
-                grid.appendChild(card);
+          grid.appendChild(card);
 
-                // Add click handler for the entire card
-                const radio = card.querySelector('input[type="radio"]');
-                card.addEventListener('click', () => {
-                    selectedCandidate = candidate.name;
-                    console.log(selectedCandidate)
-                    radio.checked = true;
-                    updateSelectionBanner(candidate.name);
-                    
-                    // Remove selection from other cards
-                    document.querySelectorAll('input[name="vote"]').forEach(input => {
-                        if (input !== radio) {
-                            input.checked = false;
-                        }
-                    });
-                });
+          // Add click handler for the entire card
+          const radio = card.querySelector('input[type="radio"]');
+          card.addEventListener("click", () => {
+            selectedCandidate = candidate.name;
+            console.log(selectedCandidate);
+            radio.checked = true;
+            updateSelectionBanner(candidate.name);
+
+            // Remove selection from other cards
+            document.querySelectorAll('input[name="vote"]').forEach((input) => {
+              if (input !== radio) {
+                input.checked = false;
+              }
             });
-        }
+          });
+        });
+      }
 
-        function showError(message) {
-            const grid = document.getElementById('candidateGrid');
-            grid.innerHTML = `
+      function showError(message) {
+        const grid = document.getElementById("candidateGrid");
+        grid.innerHTML = `
                 <div class="col-span-full flex items-center justify-center p-8">
                     <div class="text-center">
                         <p class="text-red-600 text-lg mb-2">Error</p>
@@ -492,7 +569,7 @@
                     </div>
                 </div>
             `;
-        }
+      }
     </script>
-</body>
+  </body>
 </html>

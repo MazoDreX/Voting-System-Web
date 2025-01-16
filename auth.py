@@ -8,12 +8,10 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-# Blueprint untuk auth
 auth = Blueprint('auth', __name__)
 
 e_voting = PaillierEVoting()
 
-# Dummy user database dengan role
 users = {
     "admin": {"password": "admin123", "role": "admin"}
 }
@@ -33,17 +31,13 @@ voters_data = VotersData()
 @auth.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        voter_id = request.form["id"]  # Menggunakan id untuk login
+        voter_id = request.form["id"] 
         password = request.form["password"]
         
-
-        # Pertama, cek apakah ID terdapat dalam data dummy
         if voter_id in users:
             user = users[voter_id]
 
-            # Periksa apakah password cocok
             if user["password"] == password:
-                # Simpan id dan role dalam session
                 session["id"] = voter_id
                 session["role"] = user["role"]
                 
@@ -57,22 +51,20 @@ def login():
             else:
                 flash("Invalid password.", "danger")
         else:
-            # Jika ID tidak ada di data dummy, lanjutkan pengecekan di voters_data
             voters = voters_data.load_voters()
             print(voters)
             # Mencari voter berdasarkan ID
             voter = next((v for v in voters if v["id"] == voter_id), None)
 
             if voter:
-                # Periksa apakah password cocok
                 if "password" not in voter or voter["password"] is None:
                     flash("Belum ada password! Silahkan registrasi terlebih dahulu.", "danger")
-                    return render_template("login.html")  # Arahkan ke halaman registrasi
+                    return render_template("login.html")
 
                 if check_password_hash(voter["password"],password):
                     # Simpan id dan role dalam session
                     session["id"] = voter_id
-                    session["role"] = voter.get("role", "user")  # Default role adalah "user" jika tidak ada
+                    session["role"] = voter.get("role", "user")
 
                     flash("Login successful!", "success")
 
@@ -195,7 +187,6 @@ def vote():
     if voting_status["status"] != "active":
         return jsonify({"error": "Voting belum dimulai atau sudah selesai."}), 400
 
-    # Proses vote (contoh sederhana)
     data = request.get_json()
     logging.debug(f"Data diterima: {data}")
     voter_id = data.get("voterId")
@@ -205,11 +196,9 @@ def vote():
         return jsonify({"error": "Pilihan kandidat diperlukan."}), 400
     
     try:
-        # Lakukan enkripsi
         encrypted_vote = e_voting.vote(voter_id, choice, candidate_map)
         logging.debug(f"Voter {voter_id} memilih {choice}")
         logging.debug(f"ENKRIPSI: {encrypted_vote}")
-        # Suara berhasil disimpan
         return jsonify({"message": "Vote berhasil disimpan.", "encrypted_vote": encrypted_vote.ciphertext()}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400

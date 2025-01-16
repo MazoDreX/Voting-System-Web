@@ -12,8 +12,8 @@ class PaillierEVoting:
             os.makedirs(self.key_dir)
         self.public_key, self.private_key = self.load_keys_or_generate()
 
-        self.voter_status = {}  # Track if a voter has voted
-        self.votes = []  # Store encrypted votes
+        self.voter_status = {}
+        self.votes = []
         
         self.candidates_name = []
         self.candidate_map = {}
@@ -24,7 +24,6 @@ class PaillierEVoting:
         private_key_path = os.path.join(self.key_dir, "paillier_private_key.pem")
         
         if os.path.exists(public_key_path) and os.path.exists(private_key_path):
-            # Load existing keys
             with open(public_key_path, "r") as pub_file:
                 public_key_n = int(pub_file.read().strip())
             public_key = paillier.PaillierPublicKey(public_key_n)
@@ -35,14 +34,12 @@ class PaillierEVoting:
                 private_key_q = int(private_key_data[1])
             private_key = paillier.PaillierPrivateKey(public_key, private_key_p, private_key_q)
         else:
-            # Generate new key pair
             public_key, private_key = paillier.generate_paillier_keypair()
             
-            # Save keys to files
             with open(public_key_path, "w") as pub_file:
                 pub_file.write(str(public_key.n))
             with open(private_key_path, "w") as priv_file:
-                priv_file.write(f"{private_key.p},{private_key.q}")  # Simpan p dan q
+                priv_file.write(f"{private_key.p},{private_key.q}")
         
         return public_key, private_key
 
@@ -82,14 +79,11 @@ class PaillierEVoting:
         if len(candidates_name) == 0:
             raise ValueError("Tidak ada kandidat untuk dihitung.")
 
-        # Create a dictionary to store aggregated votes
         vote_counts = {candidate['name']: 0 for candidate in candidates_name}
 
-        # Decrypt and count the votes
         for encrypted_vote in self.votes:
             decrypted_vote = self.private_key.decrypt(encrypted_vote)
 
-            # Match decrypted candidate ID to candidate name
             for candidate_name, candidate_id in candidate_map.items():
                 if decrypted_vote == candidate_id:
                     vote_counts[candidate_name] += 1
